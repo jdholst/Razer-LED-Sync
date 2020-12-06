@@ -1,0 +1,20 @@
+{
+  "name": "rezer-led-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "nodemon server"
+  },
+  "author": "",
+  "dependencies": {
+    "axios": "^0.21.0",
+    "express": "^4.17.1",
+    "redis": "^3.0.2",
+    "serialport": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}
