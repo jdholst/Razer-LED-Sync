@@ -3,51 +3,69 @@
 
 const axios = require('axios').default;
 
-function ChromaSDK() {
-    var uri;
+function ChromaSDK(previousSessionId) {
     var timerId;
-}
 
-function onTimer() {
-    axios.put(uri + "/heartbeat").then(resp => {
-        if (resp.status === 200) {
-            console.log(resp.data);
-        }
-    });
+    if (previousSessionId != null) {
+        this.sessionId = previousSessionId;
+        this.uri = `http://localhost:${previousSessionId}/chromasdk`;
+    }
 }
 
 ChromaSDK.prototype = {
     init: function () { 
-        var data = {
-            "title": "Razer Chroma SDK Sample Application",
-            "description": "Razer Chroma SDK Sample Application",
-            "author": {
-                "name": "Chroma Developer",
-                "contact": "www.razerzone.com"
-            },
-            "device_supported": [
-                "keyboard",
-                "mouse",
-                "headset",
-                "mousepad",
-                "keypad",
-                "chromalink"],
-            "category": "application"
-        };
+        return this.heartbeat()
+            .catch(() => {
+                console.log('Creating new chroma session');
+                var data = {
+                    "title": "Razer Chroma SDK Sample Application",
+                    "description": "Razer Chroma SDK Sample Application",
+                    "author": {
+                        "name": "Chroma Developer",
+                        "contact": "www.razerzone.com"
+                    },
+                    "device_supported": [
+                        "keyboard",
+                        "mouse",
+                        "headset",
+                        "mousepad",
+                        "keypad",
+                        "chromalink"],
+                    "category": "application"
+                };
 
-        axios.post("http://localhost:54235/razer/chromasdk", data, { responseType: 'json' })
-            .then(resp => {
-                uri = resp.data["uri"];
-                console.log(resp.data);
-                timerId = setInterval(onTimer, 10000);
+                return axios.post("http://localhost:54235/razer/chromasdk", data, { responseType: 'json' })
+                    .then(resp => {
+                        this.uri = resp.data["uri"];
+                        this.sessionId = resp.data['sessionid'];
+                        return this.sessionId;
+                    });
+            }).then(newSessionId => {
+                timerId = setInterval(() => {
+                    // keep the session alive
+                    this.heartbeat().catch(err => {
+                        console.error(err.toString());
+                        clearInterval(timerId);
+                    });
+                }, 10000);
+
+                console.log('Listening to ChromaSDK Instance at ' + this.uri);
+                return newSessionId;
             });
     },
     uninit: function () {
-        axios.delete(uri).then(resp => {
+        axios.delete(this.uri).then(resp => {
             console.log(resp.data);
         });
 
         clearInterval(timerId);
+    },
+    heartbeat: function() {
+        return axios.put(this.uri + "/heartbeat").then(resp => {
+            if (resp.status === 200) {
+                console.log(resp.data);
+            }
+        });
     },
     createKeyboardEffect: function (effect, data) {
         var jsonObj;
@@ -65,7 +83,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/keyboard", jsonObj, { responseType: 'json' }).then(resp => {
+        axios.put(this.uri + "/keyboard", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('createKeyboardEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         });
     },
@@ -85,7 +103,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/keyboard", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/keyboard", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateKeyboardEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         });
@@ -104,7 +122,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/mousepad", jsonObj, { responseType: 'json' }).then(resp => {
+        axios.put(this.uri + "/mousepad", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('createMousematEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         });
     },
@@ -122,7 +140,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/mousepad", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/mousepad", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateMousematEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         });
@@ -141,7 +159,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/mouse", jsonObj, { responseType: 'json' }) .then(resp => {
+        axios.put(this.uri + "/mouse", jsonObj, { responseType: 'json' }) .then(resp => {
             console.log('createMouseEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         }); 
     },
@@ -159,7 +177,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/mouse", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/mouse", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateMouseEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         }); 
@@ -178,7 +196,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/headset", jsonObj, { responseType: 'json' }) .then(resp => {
+        axios.put(this.uri + "/headset", jsonObj, { responseType: 'json' }) .then(resp => {
             console.log('createHeadsetEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         });
     },
@@ -196,7 +214,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/headset", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/headset", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateHeadsetEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         }); 
@@ -215,7 +233,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/keypad", jsonObj, { responseType: 'json' }) .then(resp => {
+        axios.put(this.uri + "/keypad", jsonObj, { responseType: 'json' }) .then(resp => {
             console.log('createKeypadEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         });
     },
@@ -233,7 +251,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/keypad", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/keypad", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateKeypadEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         });
@@ -251,7 +269,7 @@ ChromaSDK.prototype = {
         }
 
         console.log(jsonObj);
-        axios.put(uri + "/chromalink", jsonObj, { responseType: 'json' }) .then(resp => {
+        axios.put(this.uri + "/chromalink", jsonObj, { responseType: 'json' }) .then(resp => {
             console.log('createChromaLinkEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
         });
     },
@@ -269,7 +287,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        return axios.post(uri + "/chromalink", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.post(this.uri + "/chromalink", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('preCreateChromaLinkEffect(' + effect + ', ' + data + ') returns ' + resp.data['result']);
             return resp.data['id'];
         });
@@ -279,7 +297,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(uri + "/effect", jsonObj, { responseType: 'json' }).then(resp => {
+        axios.put(this.uri + "/effect", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('setEffect(' + id + ') returns ' + resp.data['result']);
         });
     },
@@ -288,7 +306,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.delete(uri + "/effect", { responseType: 'json', data: jsonObj }).then(resp => {
+        axios.delete(this.uri + "/effect", { responseType: 'json', data: jsonObj }).then(resp => {
             console.log('deleteEffect(' + id + ') returns ' + resp.data['result']);
         });
     },
@@ -296,16 +314,7 @@ ChromaSDK.prototype = {
         var jsonObj = ids;
 
         console.log(jsonObj);
-
-        var request = new XMLHttpRequest();
-
-        request.open("DELETE", uri + "/effect", false);
-
-        request.setRequestHeader("content-type", "application/json");
-
-        request.send(jsonObj);
-
-        axios.delete(uri + "/effect", { responseType: 'json', data: jsonObj }).then(resp => {
+        axios.delete(this.uri + "/effect", { responseType: 'json', data: jsonObj }).then(resp => {
             console.log('deleteEffect(' + id + ') returns ' + resp.data['result']);
         });
     }

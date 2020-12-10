@@ -3,9 +3,19 @@ const redis = require('redis');
 
 function ChromaController() {
   this.maxIntensity = 255;
-  this.chroma  = new ChromaSDK();
-  this.chroma.init();
   this.cache = redis.createClient();
+  this.cache.get('last-session-id', (err, id) => {
+    this.chroma = new ChromaSDK(id);
+
+    this.chroma.init().then(newSessionId => {
+      if (newSessionId) {
+        this.cache.set('last-session-id', newSessionId);
+      } else {
+        console.log(`Last session ${id} is still alive!`);
+        this.cache.get('current-effect', (err, effect) => this.currentEffect = effect);
+      }
+    });
+  });
 }
 
 ChromaController.prototype = {
@@ -16,7 +26,10 @@ ChromaController.prototype = {
     
     const chromaColor = redIntensity | greenIntensity << 8 | blueIntensity << 16;
     const effect = await this.chroma.preCreateMouseEffect('CHROMA_STATIC', chromaColor);
-    this.chroma.setEffect(effect);
+    this.cache.set('current-effect', effect, (err, reply) => { 
+      if (err) console.error(err);
+      console.log(reply);
+    })
     this.currentEffect = effect; // cache effectId
   },
   turnOn() {
@@ -24,8 +37,9 @@ ChromaController.prototype = {
       this.chroma.setEffect(this.currentEffect);
     }
   },
-  turnOff() {
-    return this.chroma.preCreateMouseEffect('CHROMA_NONE').then(this.chroma.setEffect);
+  async turnOff() {
+    const effect = await this.chroma.preCreateMouseEffect('CHROMA_NONE');
+    this.chroma.setEffect(effect);
   },
   destroy() {
     this.chroma.uninit();

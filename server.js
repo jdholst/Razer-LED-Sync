@@ -15,7 +15,6 @@ app.put('/lighting', (req, res) => {
   ledControl.setLeds(req.body.red, req.body.green, req.body.blue);
   chromaControl.setLeds(req.body.red, req.body.green, req.body.blue)
     .then(() => {
-      ledControl.turnOn();
       res.sendStatus(204);
     }).catch(err => res.sendStatus(400).send(err));
 });
@@ -35,9 +34,4 @@ app.put('/power-off', (_, res) => {
 
 app.listen(port, () => {
   console.log(`Razer LED Sync listening at http://localhost:${port}`)
-});
-
-process.on('SIGTERM', () => {
-  ledControl.destroy();
-  chromaControl.destroy();
 });
