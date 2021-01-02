@@ -1,3 +1,5 @@
+const options = require('./utils/cmdparser').getOptionArgs();
+
 const express = require('express');
 const app = express();
 const port = 3000;
@@ -6,7 +8,7 @@ const bodyparser = require('body-parser');
 app.use(bodyparser.json());
 
 const LEDStripController = require('./ledcontrol');
-const ledControl = new LEDStripController('COM6');
+const ledControl = new LEDStripController(options['arduinoComPath'] || 'COM6');
 
 const ChromaController = require('./chromacontrol');
 const chromaControl = new ChromaController();

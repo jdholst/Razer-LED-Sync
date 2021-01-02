@@ -40,7 +40,7 @@ ChromaSDK.prototype = {
                         this.sessionId = resp.data['sessionid'];
                         return this.sessionId;
                     });
-            }).then(newSessionId => {
+            }).then(() => {
                 timerId = setInterval(() => {
                     // keep the session alive
                     this.heartbeat().catch(err => {
@@ -50,7 +50,7 @@ ChromaSDK.prototype = {
                 }, 10000);
 
                 console.log('Listening to ChromaSDK Instance at ' + this.uri);
-                return newSessionId;
+                return this.sessionId;
             });
     },
     uninit: function () {
@@ -297,8 +297,9 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
 
-        axios.put(this.uri + "/effect", jsonObj, { responseType: 'json' }).then(resp => {
+        return axios.put(this.uri + "/effect", jsonObj, { responseType: 'json' }).then(resp => {
             console.log('setEffect(' + id + ') returns ' + resp.data['result']);
+            return resp.data['result'];
         });
     },
     deleteEffect: function (id) {
@@ -315,7 +316,7 @@ ChromaSDK.prototype = {
 
         console.log(jsonObj);
         axios.delete(this.uri + "/effect", { responseType: 'json', data: jsonObj }).then(resp => {
-            console.log('deleteEffect(' + id + ') returns ' + resp.data['result']);
+            console.log('deleteEffect(' + ids + ') returns ' + resp.data['result']);
         });
     }
 }
